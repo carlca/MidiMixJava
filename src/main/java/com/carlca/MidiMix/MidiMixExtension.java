@@ -1,4 +1,4 @@
-package com.carlca;
+package com.carlca.MidiMix;
 
 import java.util.*;
 
@@ -7,13 +7,22 @@ import com.bitwig.extension.callback.ShortMidiMessageReceivedCallback;
 import com.bitwig.extension.controller.api.ControllerHost;
 import com.bitwig.extension.controller.api.Transport;
 import com.bitwig.extension.controller.ControllerExtension;
+//import com.carlca.Logger.*;
+import com.carlca.Logger.Sender.Sender;
 import org.javatuples.*;
 
 public class MidiMixExtension extends ControllerExtension {
+
     protected MidiMixExtension(final MidiMixExtensionDefinition definition, final ControllerHost host) {
         super(definition, host);
     }
-
+    
+    private Transport mTransport;
+    private HashMap<Integer, Integer> mTracks;
+    private HashMap<Integer, Integer> mTypes;
+    private Stack<Integer> mPending;
+    private Sender log;
+    
     private static final int TRACK_1 = 0x10;
     private static final int TRACK_2 = 0x14;
     private static final int TRACK_3 = 0x18;
@@ -28,8 +37,8 @@ public class MidiMixExtension extends ControllerExtension {
     private static final int SEND_C = 2;
     private static final int VOLUME = 3;
     private static final int MASTER = 0xFF;
-    
-    
+
+
     @Override
     public void init() {
         final ControllerHost host = getHost();
@@ -55,10 +64,13 @@ public class MidiMixExtension extends ControllerExtension {
         mTypes.putAll(makeTypeHash(SEND_C));
         mTypes.putAll(makeTypeHash(VOLUME));
         mTypes.put(MAST_MIDI, VOLUME);
-        
+
         mPending = new Stack<>();
+
+        log = new Sender();    
+    
     }
-                               
+
     private HashMap<Integer, Integer> makeTrackHash(int offset) {
         int[] base = {TRACK_1, TRACK_2, TRACK_3, TRACK_4, TRACK_5, TRACK_6, TRACK_7, TRACK_8};
         HashMap<Integer, Integer> hash = new HashMap<>();
@@ -126,10 +138,10 @@ public class MidiMixExtension extends ControllerExtension {
         getHost().println(String.format("pair processed: %d", pending));
         // TODO: Finish Button processing
         // TODO: Think about paging
-        // TODO: Work out API imputs
+        // TODO: Work out API inputs
         // TODO: Work out how to handle folders
     }
-    
+
     private void processNoteOn(ShortMidiMessage msg) {
         mPending.push(msg.getData1());
     }
@@ -157,9 +169,4 @@ public class MidiMixExtension extends ControllerExtension {
                 break;
         }
     }
-
-    private Transport mTransport;
-    private HashMap<Integer, Integer> mTracks;
-    private HashMap<Integer, Integer> mTypes;
-    private Stack<Integer> mPending;
 }

@@ -1,4 +1,4 @@
-package com.carlca;
+package com.carlca.MidiMix;
 import java.util.UUID;
 
 import com.bitwig.extension.api.PlatformType;
