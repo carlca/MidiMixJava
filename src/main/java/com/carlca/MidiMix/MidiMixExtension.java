@@ -66,9 +66,6 @@ public class MidiMixExtension extends ControllerExtension {
         mTypes.put(MAST_MIDI, VOLUME);
 
         mPending = new Stack<>();
-
-        log = new Sender();    
-    
     }
 
     private HashMap<Integer, Integer> makeTrackHash(int offset) {
@@ -122,6 +119,9 @@ public class MidiMixExtension extends ControllerExtension {
         int track = mTracks.get(msg.getData1());
         int type = mTypes.get(msg.getData1());
         int value = msg.getData2();
+
+        log = new Sender();
+
         getHost().println(String.format("Track: %d  Type: %d  Value: %d", track, type, value));
     }
 
