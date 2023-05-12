@@ -7,8 +7,7 @@ import com.bitwig.extension.callback.ShortMidiMessageReceivedCallback;
 import com.bitwig.extension.controller.api.ControllerHost;
 import com.bitwig.extension.controller.api.Transport;
 import com.bitwig.extension.controller.ControllerExtension;
-//import com.carlca.Logger.*;
-import com.carlca.Logger.Sender.Sender;
+import com.carlca.logger.*;
 import org.javatuples.*;
 
 public class MidiMixExtension extends ControllerExtension {
