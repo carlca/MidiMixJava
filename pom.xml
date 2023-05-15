@@ -27,11 +27,6 @@
             <artifactId>javatuples</artifactId>
             <version>1.2</version>
         </dependency>
-        <dependency>
-            <groupId>com.carlca</groupId>
-            <artifactId>carlca</artifactId>
-            <version>0.1</version>
-        </dependency>
     </dependencies>
 
     <build>

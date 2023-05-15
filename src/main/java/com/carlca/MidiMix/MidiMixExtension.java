@@ -122,17 +122,7 @@ public class MidiMixExtension extends ControllerExtension {
         int type = mTypes.get(msg.getData1());
         int value = msg.getData2();
 
-        log = new Sender();
-
         getHost().println(String.format("Track: %d  Type: %d  Value: %d", track, type, value));
-
-//        String configRoot = ConfigFolder.getConfigFolderRoot();
-//        String shortName = PackageName.getShortName();
-//        String fullName = PackageName.getFullName();
-//        Path shortHome = Paths.get(configRoot, shortName);
-//        Path fullHome = Paths.get(configRoot, fullName);
-//        System.out.printf("Short: %s\n", shortHome);
-//        System.out.printf("Full: %s\n", fullHome);
     }
 
     private void processNoteOff(ShortMidiMessage msg) {
@@ -146,6 +136,15 @@ public class MidiMixExtension extends ControllerExtension {
 
     private void processPending(int pending) {
         getHost().println(String.format("pair processed: %d", pending));
+
+        String configRoot = ConfigFolder.getConfigFolderRoot();
+        String shortName = PackageName.getShortName();
+        String fullName = PackageName.getFullName();
+        Path shortHome = Paths.get(configRoot, shortName);
+        Path fullHome = Paths.get(configRoot, fullName);
+        getHost().println(String.format("Short: %s\n", shortHome));
+        getHost().println(String.format("Full: %s\n", fullHome));
+
         // TODO: Finish Button processing
         // TODO: Think about paging
         // TODO: Work out API inputs
