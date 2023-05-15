@@ -1,5 +1,7 @@
 package com.carlca.MidiMix;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import com.bitwig.extension.api.util.midi.ShortMidiMessage;
@@ -8,6 +10,7 @@ import com.bitwig.extension.controller.api.ControllerHost;
 import com.bitwig.extension.controller.api.Transport;
 import com.bitwig.extension.controller.ControllerExtension;
 import com.carlca.logger.*;
+import com.carlca.config.*;
 import org.javatuples.*;
 
 public class MidiMixExtension extends ControllerExtension {
@@ -122,6 +125,14 @@ public class MidiMixExtension extends ControllerExtension {
         log = new Sender();
 
         getHost().println(String.format("Track: %d  Type: %d  Value: %d", track, type, value));
+
+//        String configRoot = ConfigFolder.getConfigFolderRoot();
+//        String shortName = PackageName.getShortName();
+//        String fullName = PackageName.getFullName();
+//        Path shortHome = Paths.get(configRoot, shortName);
+//        Path fullHome = Paths.get(configRoot, fullName);
+//        System.out.printf("Short: %s\n", shortHome);
+//        System.out.printf("Full: %s\n", fullHome);
     }
 
     private void processNoteOff(ShortMidiMessage msg) {
