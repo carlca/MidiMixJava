@@ -27,6 +27,11 @@
             <artifactId>javatuples</artifactId>
             <version>1.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.carlca</groupId>
+            <artifactId>carlca</artifactId>
+            <version>0.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -78,6 +83,36 @@
                                     <version>3.0</version>
                                 </requireMavenVersion>
                             </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>com.bitwig:extension-api</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <!-- Silence overlap warnings -->
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.MF</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <minimizeJar>true</minimizeJar>
                         </configuration>
                     </execution>
                 </executions>
