@@ -1,7 +1,5 @@
 package com.carlca.MidiMix;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import com.bitwig.extension.api.util.midi.ShortMidiMessage;
@@ -9,9 +7,9 @@ import com.bitwig.extension.callback.ShortMidiMessageReceivedCallback;
 import com.bitwig.extension.controller.api.ControllerHost;
 import com.bitwig.extension.controller.api.Transport;
 import com.bitwig.extension.controller.ControllerExtension;
+import com.carlca.utils.*;
 import com.carlca.logger.*;
 import com.carlca.config.*;
-import org.javatuples.*;
 
 public class MidiMixExtension extends ControllerExtension {
 
@@ -137,13 +135,17 @@ public class MidiMixExtension extends ControllerExtension {
     private void processPending(int pending) {
         getHost().println(String.format("pair processed: %d", pending));
 
-        String configRoot = ConfigFolder.getConfigFolderRoot();
-        String shortName = PackageName.getShortName();
-        String fullName = PackageName.getFullName();
-        Path shortHome = Paths.get(configRoot, shortName);
-        Path fullHome = Paths.get(configRoot, fullName);
-        getHost().println(String.format("Short: %s\n", shortHome));
-        getHost().println(String.format("Full: %s\n", fullHome));
+        getHost().println(String.format("getConfigFolder: %s", ConfigFolder.getConfigFolder()));
+        getHost().println(String.format("getCurrentPackage: %s", PackageName.getCurrentPackage()));
+        getHost().println(String.format("getShortCurrentPackage: %s", PackageName.getShortCurrentPackage()));
+        getHost().println("getStackTrace before:");
+        ArrayList<String> stackTrace = PackageName.getStackTrace();
+        getHost().println(stackTrace.toString());
+        String currentPackage = PackageName.getCurrentPackage();
+        PackageName.removeElements(stackTrace, currentPackage);
+        getHost().println("getStackTrace after:");
+        getHost().println(stackTrace.toString());
+        getHost().println(String.format("getPackageName: %s", PackageName.getPackageName()));
 
         // TODO: Finish Button processing
         // TODO: Think about paging
