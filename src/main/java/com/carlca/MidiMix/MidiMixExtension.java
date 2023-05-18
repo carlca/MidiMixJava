@@ -135,9 +135,8 @@ public class MidiMixExtension extends ControllerExtension {
     private void processPending(int pending) {
         getHost().println(String.format("pair processed: %d", pending));
 
-        getHost().println(String.format("getConfigFolder: %s", ConfigFolder.getConfigFolder()));
-        getHost().println(String.format("getPackageName: %s", PackageName.getPackageName()));
-        getHost().println(String.format("getShortPackageName: %s", PackageName.getShortPackageName()));
+        Config config = new Config("MidiMix");
+        getHost().println(String.format("getConfigFolder: %s", config.getConfigFolder()));
 
         // TODO: Finish Button processing
         // TODO: Think about paging
