@@ -136,16 +136,8 @@ public class MidiMixExtension extends ControllerExtension {
         getHost().println(String.format("pair processed: %d", pending));
 
         getHost().println(String.format("getConfigFolder: %s", ConfigFolder.getConfigFolder()));
-        getHost().println(String.format("getCurrentPackage: %s", PackageName.getCurrentPackage()));
-        getHost().println(String.format("getShortCurrentPackage: %s", PackageName.getShortCurrentPackage()));
-        getHost().println("getStackTrace before:");
-        ArrayList<String> stackTrace = PackageName.getStackTrace();
-        getHost().println(stackTrace.toString());
-        String currentPackage = PackageName.getCurrentPackage();
-        PackageName.removeElements(stackTrace, currentPackage);
-        getHost().println("getStackTrace after:");
-        getHost().println(stackTrace.toString());
         getHost().println(String.format("getPackageName: %s", PackageName.getPackageName()));
+        getHost().println(String.format("getShortPackageName: %s", PackageName.getShortPackageName()));
 
         // TODO: Finish Button processing
         // TODO: Think about paging
