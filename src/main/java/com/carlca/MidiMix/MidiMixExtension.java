@@ -1,5 +1,6 @@
 package com.carlca.MidiMix;
 
+import java.io.IOException;
 import java.util.*;
 
 import com.bitwig.extension.api.util.midi.ShortMidiMessage;
@@ -11,6 +12,8 @@ import com.carlca.utils.*;
 import com.carlca.logger.*;
 import com.carlca.config.*;
 
+import static com.carlca.logger.Log.send;
+
 public class MidiMixExtension extends ControllerExtension {
 
     protected MidiMixExtension(final MidiMixExtensionDefinition definition, final ControllerHost host) {
@@ -21,8 +24,7 @@ public class MidiMixExtension extends ControllerExtension {
     private HashMap<Integer, Integer> mTracks;
     private HashMap<Integer, Integer> mTypes;
     private Stack<Integer> mPending;
-    private Sender log;
-    
+
     private static final int TRACK_1 = 0x10;
     private static final int TRACK_2 = 0x14;
     private static final int TRACK_3 = 0x18;
@@ -44,12 +46,18 @@ public class MidiMixExtension extends ControllerExtension {
         final ControllerHost host = getHost();
 
         mTransport = host.createTransport();
-        host.getMidiInPort(0).setMidiCallback((ShortMidiMessageReceivedCallback) this::onMidi0);
+        host.getMidiInPort(0).setMidiCallback((ShortMidiMessageReceivedCallback) msg -> {
+            try {
+                onMidi0(msg);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
         host.getMidiInPort(0).setSysexCallback(this::onSysex0);
 
         // TODO: Perform your driver initialization here.
         // For now just show a popup notification for verification that it is running.
-        host.showPopupNotification("MidiMix Initialized");
+        Log.init("MidiMix");
 
         mTracks = new HashMap<>();
         mTracks.putAll(makeTrackHash(SEND_A));
@@ -87,7 +95,7 @@ public class MidiMixExtension extends ControllerExtension {
     public void exit() {
         // TODO: Perform any cleanup once the driver exits
         // For now just show a popup notification for verification that it is no longer running.
-        getHost().showPopupNotification("MidiMix Exited");
+        Log.send("MidiMix Exited");
     }
 
     @Override
@@ -98,7 +106,7 @@ public class MidiMixExtension extends ControllerExtension {
     /**
      * Called when we receive short MIDI message on port 0.
      */
-    private void onMidi0(ShortMidiMessage msg) {
+    private void onMidi0(ShortMidiMessage msg) throws IOException {
         if (msg.isControlChange())
             processControlChange(msg);
         else if (msg.isNoteOff())
@@ -120,10 +128,10 @@ public class MidiMixExtension extends ControllerExtension {
         int type = mTypes.get(msg.getData1());
         int value = msg.getData2();
 
-        getHost().println(String.format("Track: %d  Type: %d  Value: %d", track, type, value));
+        Log.send("Track: %d  Type: %d  Value: %d", track, type, value);
     }
 
-    private void processNoteOff(ShortMidiMessage msg) {
+    private void processNoteOff(ShortMidiMessage msg) throws IOException {
         if (!mPending.empty()) {
             processPending(mPending.pop());
         }
@@ -132,11 +140,13 @@ public class MidiMixExtension extends ControllerExtension {
         }
     }
 
-    private void processPending(int pending) {
+    private void processPending(int pending) throws IOException {
         getHost().println(String.format("pair processed: %d", pending));
 
         Config config = new Config("MidiMix");
         getHost().println(String.format("getConfigFolder: %s", config.getConfigFolder()));
+
+        send("Hello from MidiMix!");
 
         // TODO: Finish Button processing
         // TODO: Think about paging
