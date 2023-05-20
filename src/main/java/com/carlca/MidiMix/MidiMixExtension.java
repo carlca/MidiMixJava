@@ -6,6 +6,8 @@ import java.util.*;
 import com.bitwig.extension.api.util.midi.ShortMidiMessage;
 import com.bitwig.extension.callback.ShortMidiMessageReceivedCallback;
 import com.bitwig.extension.controller.api.ControllerHost;
+import com.bitwig.extension.controller.api.TrackBank;
+import com.bitwig.extension.controller.api.Track;
 import com.bitwig.extension.controller.api.Transport;
 import com.bitwig.extension.controller.ControllerExtension;
 import com.carlca.utils.*;
@@ -24,6 +26,9 @@ public class MidiMixExtension extends ControllerExtension {
     private HashMap<Integer, Integer> mTracks;
     private HashMap<Integer, Integer> mTypes;
     private Stack<Integer> mPending;
+    private TrackBank mTrackBank;
+    private TrackBank mGroupedTrackBank;
+    private Track mMasterTrack;
 
     private static final int TRACK_1 = 0x10;
     private static final int TRACK_2 = 0x14;
@@ -74,6 +79,10 @@ public class MidiMixExtension extends ControllerExtension {
         mTypes.put(MAST_MIDI, VOLUME);
 
         mPending = new Stack<>();
+
+        mTrackBank = host.createTrackBank(12, 0, 0);
+        mTrackBank.itemCount().markInterested();
+        mMasterTrack = host.createMasterTrack(0);
     }
 
     private HashMap<Integer, Integer> makeTrackHash(int offset) {
@@ -124,11 +133,19 @@ public class MidiMixExtension extends ControllerExtension {
     }
 
     private void processControlChange(ShortMidiMessage msg) {
-        int track = mTracks.get(msg.getData1());
-        int type = mTypes.get(msg.getData1());
-        int value = msg.getData2();
+        int trackNum = mTracks.get(msg.getData1());
+        int typeNum = mTypes.get(msg.getData1());
+        int valueNum = msg.getData2();
 
-        Log.send("Track: %d  Type: %d  Value: %d", track, type, value);
+        Log.send("Track: %d  Type: %d  Value: %d", trackNum, typeNum, valueNum);
+
+        double volume = valueNum / 127.0;
+        if (trackNum == MASTER) {
+            mMasterTrack.volume().set(volume);
+        } else {
+            Track track = mTrackBank.getItemAt(trackNum);
+            track.volume().set(volume);
+        }
     }
 
     private void processNoteOff(ShortMidiMessage msg) throws IOException {
@@ -152,6 +169,18 @@ public class MidiMixExtension extends ControllerExtension {
         // TODO: Think about paging
         // TODO: Work out API inputs
         // TODO: Work out how to handle folders
+
+        int trackCount = mTrackBank.itemCount().getAsInt(); // get();
+        Log.send("Track count %d", trackCount);
+        for (int i=0; i<trackCount; i++) {
+            Track track = mTrackBank.getItemAt(i);
+            Log.send("Track number %d", i);
+        }
+
+//        Track track = mTrackBank.getItemAt(trackNum);
+//        track.volume().set(volume);
+
+
     }
 
     private void processNoteOn(ShortMidiMessage msg) {
