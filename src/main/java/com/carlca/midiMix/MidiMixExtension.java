@@ -1,4 +1,4 @@
-package com.carlca.MidiMix;
+package com.carlca.midiMix;
 
 import java.io.IOException;
 import java.util.*;
@@ -50,12 +50,27 @@ public class MidiMixExtension extends ControllerExtension {
     private static final int VOLUME = 3;
     private static final int MASTER = 0xFF;
 
-
     @Override
     public void init() {
         final ControllerHost host = getHost();
 
-        mTransport = host.createTransport();
+        Log.init("midiMix");
+
+        initTransport(host);
+        initOnMidiCallback(host);
+        initOnSysexCallback(host);
+        initPendingStack();
+        initTrackMap();
+        initTypeMap();
+        initTrackBank(host);
+        initMasterTrack(host);
+    }
+
+    private void initMasterTrack(ControllerHost host) {
+        mMasterTrack = host.createMasterTrack(0);
+    }
+
+    private void initOnMidiCallback(ControllerHost host) {
         host.getMidiInPort(0).setMidiCallback((ShortMidiMessageReceivedCallback) msg -> {
             try {
                 onMidi0(msg);
@@ -63,29 +78,44 @@ public class MidiMixExtension extends ControllerExtension {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    private void initOnSysexCallback(ControllerHost host) {
         host.getMidiInPort(0).setSysexCallback(this::onSysex0);
+    }
 
-        Log.init("MidiMix");
+    private void initPendingStack() {
+        mPending = new Stack<>();
+    }
 
+    private void initTransport(ControllerHost host) {
+        mTransport = host.createTransport();
+    }
+
+    private void initTrackMap() {
         mTracks = new HashMap<>();
         mTracks.putAll(makeTrackHash(SEND_A));
         mTracks.putAll(makeTrackHash(SEND_B));
         mTracks.putAll(makeTrackHash(SEND_C));
         mTracks.putAll(makeTrackHash(VOLUME));
         mTracks.put(MAST_MIDI, MASTER);
+    }
 
+    private void initTypeMap() {
         mTypes = new HashMap<>();
         mTypes.putAll(makeTypeHash(SEND_A));
         mTypes.putAll(makeTypeHash(SEND_B));
         mTypes.putAll(makeTypeHash(SEND_C));
         mTypes.putAll(makeTypeHash(VOLUME));
         mTypes.put(MAST_MIDI, VOLUME);
+    }
 
-        mPending = new Stack<>();
-
-        mTrackBank = host.createTrackBank(12, 0, 0);
+    private void initTrackBank(ControllerHost host) {
+        mTrackBank = host.createTrackBank(MAX_TRACKS, MAX_SENDS, MAX_SCENES);
         mTrackBank.itemCount().markInterested();
-        mMasterTrack = host.createMasterTrack(0);
+        for (int i=0; i<mTrackBank.getCapacityOfBank(); i++) {
+            mTrackBank.getItemAt(i).isGroup().markInterested();
+        }
     }
 
     private HashMap<Integer, Integer> makeTrackHash(int offset) {
@@ -103,14 +133,11 @@ public class MidiMixExtension extends ControllerExtension {
 
     @Override
     public void exit() {
-        // TODO: Perform any cleanup once the driver exits
-        // For now just show a popup notification for verification that it is no longer running.
-        Log.send("MidiMix Exited");
+        Log.send("midiMix Exited");
     }
 
     @Override
     public void flush() {
-        // TODO Send any updates you need here.
     }
 
     /**
@@ -123,14 +150,6 @@ public class MidiMixExtension extends ControllerExtension {
             processNoteOff(msg);
         else if (msg.isNoteOn())
             processNoteOn(msg);
-    }
-
-    private String data1Hex(ShortMidiMessage msg) {
-        return String.format("%1$02X", msg.getData1());
-    }
-
-    private String data2Hex(ShortMidiMessage msg) {
-        return String.format("%1$02X", msg.getData2());
     }
 
     private void processControlChange(ShortMidiMessage msg) {
@@ -159,12 +178,9 @@ public class MidiMixExtension extends ControllerExtension {
     }
 
     private void processPending(int pending) throws IOException {
-        getHost().println(String.format("pair processed: %d", pending));
-
-        Config config = new Config("MidiMix");
-        getHost().println(String.format("getConfigFolder: %s", config.getConfigFolder()));
-
-        send("Hello from MidiMix!");
+        Config config = new Config("midiMix");
+        Log.send("pair processed: %d", pending);
+        Log.send("getConfigFolder: %s", config.getConfigFolder());
 
         // TODO: Finish Button processing
         // TODO: Think about paging
@@ -177,11 +193,6 @@ public class MidiMixExtension extends ControllerExtension {
             Track track = mTrackBank.getItemAt(i);
             Log.send("Track number %d", i);
         }
-
-//        Track track = mTrackBank.getItemAt(trackNum);
-//        track.volume().set(volume);
-
-
     }
 
     private void processNoteOn(ShortMidiMessage msg) {

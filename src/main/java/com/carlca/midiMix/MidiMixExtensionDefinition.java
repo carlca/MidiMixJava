@@ -1,4 +1,4 @@
-package com.carlca.MidiMix;
+package com.carlca.midiMix;
 import java.util.UUID;
 
 import com.bitwig.extension.api.PlatformType;
@@ -17,7 +17,7 @@ public class MidiMixExtensionDefinition extends ControllerExtensionDefinition
    @Override
    public String getName()
    {
-      return "MidiMix";
+      return "midiMix";
    }
    
    @Override
@@ -47,7 +47,7 @@ public class MidiMixExtensionDefinition extends ControllerExtensionDefinition
    @Override
    public String getHardwareModel()
    {
-      return "MidiMix";
+      return "midiMix";
    }
 
    @Override
