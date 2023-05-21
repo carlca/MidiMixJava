@@ -27,8 +27,12 @@ public class MidiMixExtension extends ControllerExtension {
     private HashMap<Integer, Integer> mTypes;
     private Stack<Integer> mPending;
     private TrackBank mTrackBank;
-    private TrackBank mGroupedTrackBank;
     private Track mMasterTrack;
+
+    private static final int MAX_TRACKS = 0x200;
+    private static final int MAX_SENDS = 0x200;
+    private static final int MAX_SCENES = 0x200;
+    private static final boolean HAS_FLAT_TRACK_LIST = true;
 
     private static final int TRACK_1 = 0x10;
     private static final int TRACK_2 = 0x14;
@@ -38,6 +42,7 @@ public class MidiMixExtension extends ControllerExtension {
     private static final int TRACK_6 = 0x32;
     private static final int TRACK_7 = 0x36;
     private static final int TRACK_8 = 0x3A;
+    private static final int[] TRACKS = {TRACK_1, TRACK_2, TRACK_3, TRACK_4, TRACK_5, TRACK_6, TRACK_7, TRACK_8};
     private static final int MAST_MIDI = 0x3E;
     private static final int SEND_A = 0;
     private static final int SEND_B = 1;
@@ -60,8 +65,6 @@ public class MidiMixExtension extends ControllerExtension {
         });
         host.getMidiInPort(0).setSysexCallback(this::onSysex0);
 
-        // TODO: Perform your driver initialization here.
-        // For now just show a popup notification for verification that it is running.
         Log.init("MidiMix");
 
         mTracks = new HashMap<>();
@@ -86,17 +89,15 @@ public class MidiMixExtension extends ControllerExtension {
     }
 
     private HashMap<Integer, Integer> makeTrackHash(int offset) {
-        int[] base = {TRACK_1, TRACK_2, TRACK_3, TRACK_4, TRACK_5, TRACK_6, TRACK_7, TRACK_8};
         HashMap<Integer, Integer> hash = new HashMap<>();
-        for (int i = 0; i < base.length; i++)
-            hash.put(base[i] + offset, i);
+        for (int i = 0; i < TRACKS.length; i++)
+            hash.put(TRACKS[i] + offset, i);
         return hash;
     }
 
     private HashMap<Integer, Integer> makeTypeHash(int offset) {
-        int[] base = {TRACK_1, TRACK_2, TRACK_3, TRACK_4, TRACK_5, TRACK_6, TRACK_7, TRACK_8};
         HashMap<Integer, Integer> hash = new HashMap<>();
-        for (int i : base) hash.put(i + offset, offset);
+        for (int i : TRACKS) hash.put(i + offset, offset);
         return hash;
     }
 
