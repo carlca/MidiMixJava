@@ -10,6 +10,7 @@ import com.bitwig.extension.controller.api.TrackBank;
 import com.bitwig.extension.controller.api.Track;
 import com.bitwig.extension.controller.api.Transport;
 import com.bitwig.extension.controller.ControllerExtension;
+import com.carlca.midiMix.utils.StringUtils;
 import com.carlca.utils.*;
 import com.carlca.logger.*;
 import com.carlca.config.*;
@@ -27,10 +28,12 @@ public class MidiMixExtension extends ControllerExtension {
     private HashMap<Integer, Integer> mTypes;
     private Stack<Integer> mPending;
     private TrackBank mTrackBank;
+    private TrackBank mMainTrackBank;
+    private TrackBank mEffectTrackBank;
     private Track mMasterTrack;
 
-    private static final int MAX_TRACKS = 0x200;
-    private static final int MAX_SENDS = 0x200;
+    private static final int MAX_TRACKS = 0x08;
+    private static final int MAX_SENDS = 0x03;
     private static final int MAX_SCENES = 0x200;
     private static final boolean HAS_FLAT_TRACK_LIST = true;
 
@@ -62,7 +65,7 @@ public class MidiMixExtension extends ControllerExtension {
         initPendingStack();
         initTrackMap();
         initTypeMap();
-        initTrackBank(host);
+        initTrackBanks(host);
         initMasterTrack(host);
     }
 
@@ -110,11 +113,20 @@ public class MidiMixExtension extends ControllerExtension {
         mTypes.put(MAST_MIDI, VOLUME);
     }
 
-    private void initTrackBank(ControllerHost host) {
-        mTrackBank = host.createTrackBank(MAX_TRACKS, MAX_SENDS, MAX_SCENES);
-        mTrackBank.itemCount().markInterested();
-        for (int i=0; i<mTrackBank.getCapacityOfBank(); i++) {
-            mTrackBank.getItemAt(i).isGroup().markInterested();
+    private void initTrackBanks(ControllerHost host) {
+        mTrackBank = host.createTrackBank(MAX_TRACKS + MAX_SENDS + 1, MAX_SENDS, MAX_SCENES);
+        mMainTrackBank = host.createMainTrackBank(MAX_TRACKS, MAX_SENDS, MAX_SCENES);
+        mEffectTrackBank = host.createEffectTrackBank(MAX_SENDS, MAX_SENDS, MAX_SCENES);
+        initTrackBankInterest(mTrackBank);
+        initTrackBankInterest(mMainTrackBank);
+        initTrackBankInterest(mEffectTrackBank);
+    }
+
+    private void initTrackBankInterest(TrackBank bank) {
+        bank.itemCount().markInterested();
+        bank.channelCount().markInterested();
+        for (int i=0; i<bank.getCapacityOfBank(); i++) {
+            bank.getItemAt(i).isGroup().markInterested();
         }
     }
 
@@ -187,10 +199,18 @@ public class MidiMixExtension extends ControllerExtension {
         // TODO: Work out API inputs
         // TODO: Work out how to handle folders
 
-        int trackCount = mTrackBank.itemCount().getAsInt(); // get();
-        Log.send("Track count %d", trackCount);
+        iterateTracks(mMainTrackBank);
+        iterateTracks(mTrackBank);
+        iterateTracks(mEffectTrackBank);
+    }
+
+    private void iterateTracks(TrackBank bank) {
+        int trackCount = bank.itemCount().getAsInt();
+        String bankClass = StringUtils.unadornedClassName(bank);
+        // Print tracks
+        Log.send("%s.itemCount() %d", bankClass, trackCount);
         for (int i=0; i<trackCount; i++) {
-            Track track = mTrackBank.getItemAt(i);
+            Track track = bank.getItemAt(i);
             Log.send("Track number %d", i);
         }
     }
