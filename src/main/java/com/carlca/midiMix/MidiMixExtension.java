@@ -5,17 +5,12 @@ import java.util.*;
 
 import com.bitwig.extension.api.util.midi.ShortMidiMessage;
 import com.bitwig.extension.callback.ShortMidiMessageReceivedCallback;
-import com.bitwig.extension.controller.api.ControllerHost;
-import com.bitwig.extension.controller.api.TrackBank;
-import com.bitwig.extension.controller.api.Track;
-import com.bitwig.extension.controller.api.Transport;
+import com.bitwig.extension.controller.api.*;
 import com.bitwig.extension.controller.ControllerExtension;
 import com.carlca.midiMix.utils.StringUtils;
 import com.carlca.utils.*;
 import com.carlca.logger.*;
 import com.carlca.config.*;
-
-import static com.carlca.logger.Log.send;
 
 public class MidiMixExtension extends ControllerExtension {
 
@@ -31,10 +26,12 @@ public class MidiMixExtension extends ControllerExtension {
     private TrackBank mMainTrackBank;
     private TrackBank mEffectTrackBank;
     private Track mMasterTrack;
+    private CursorTrack mCursorTrack;
+    private HashMap<Track, Integer> mParentCounts;
 
-    private static final int MAX_TRACKS = 0x08;
+    private static final int MAX_TRACKS = 0x10;
     private static final int MAX_SENDS = 0x03;
-    private static final int MAX_SCENES = 0x200;
+    private static final int MAX_SCENES = 0x10;
     private static final boolean HAS_FLAT_TRACK_LIST = true;
 
     private static final int TRACK_1 = 0x10;
@@ -58,6 +55,7 @@ public class MidiMixExtension extends ControllerExtension {
         final ControllerHost host = getHost();
 
         Log.init("midiMix");
+        Log.cls();
 
         initTransport(host);
         initOnMidiCallback(host);
@@ -67,10 +65,8 @@ public class MidiMixExtension extends ControllerExtension {
         initTypeMap();
         initTrackBanks(host);
         initMasterTrack(host);
-    }
-
-    private void initMasterTrack(ControllerHost host) {
-        mMasterTrack = host.createMasterTrack(0);
+        initCursorTrack(host);
+        initParentTracks(host);
     }
 
     private void initOnMidiCallback(ControllerHost host) {
@@ -114,20 +110,64 @@ public class MidiMixExtension extends ControllerExtension {
     }
 
     private void initTrackBanks(ControllerHost host) {
-        mTrackBank = host.createTrackBank(MAX_TRACKS + MAX_SENDS + 1, MAX_SENDS, MAX_SCENES);
+        mTrackBank = host.createTrackBank(MAX_TRACKS, MAX_SENDS, MAX_SCENES);
         mMainTrackBank = host.createMainTrackBank(MAX_TRACKS, MAX_SENDS, MAX_SCENES);
         mEffectTrackBank = host.createEffectTrackBank(MAX_SENDS, MAX_SENDS, MAX_SCENES);
-        initTrackBankInterest(mTrackBank);
-        initTrackBankInterest(mMainTrackBank);
-        initTrackBankInterest(mEffectTrackBank);
+        initInterest(mTrackBank);
+        initInterest(mMainTrackBank);
+        initInterest(mEffectTrackBank);
     }
 
-    private void initTrackBankInterest(TrackBank bank) {
+    private void initMasterTrack(ControllerHost host) {
+        mMasterTrack = host.createMasterTrack(0);
+    }
+
+    private void initParentTracks(ControllerHost host) {
+        mParentCounts = new HashMap<>();
+        initParentCountsForOneBank(mTrackBank, host);
+        initParentCountsForOneBank(mMainTrackBank, host);
+        initParentCountsForOneBank(mEffectTrackBank, host);
+    };
+
+    private void initParentCountsForOneBank(TrackBank bank, ControllerHost host) {
+        for (int i=0; i<bank.getCapacityOfBank(); i++) {
+            Track track = bank.getItemAt(i);
+            track.exists().markInterested();
+            String trackName = track.name().get();
+            Stack<Track> tracks = new Stack<>();
+            int count = 0;
+            while (track.exists().get()) {
+                trackName = track.name().get();
+                tracks.push(track);
+                track = track.createParentTrack(0, 0);
+                count++;
+            }
+            if (!tracks.isEmpty()) {
+                Track lastTrack = tracks.pop();
+                mParentCounts.put(lastTrack, count);
+            }
+        }
+    };
+
+    private void initInterest(TrackBank bank) {
         bank.itemCount().markInterested();
         bank.channelCount().markInterested();
         for (int i=0; i<bank.getCapacityOfBank(); i++) {
-            bank.getItemAt(i).isGroup().markInterested();
-        }
+            Track track = bank.getItemAt(i);
+            track.name().markInterested();
+            track.isGroup().markInterested();
+            track.canHoldNoteData().markInterested();
+            track.canHoldAudioData().markInterested();
+            track.trackType().markInterested();
+            track.position().markInterested();
+            track.exists().markInterested();
+            Track parent = track.createParentTrack(0, 0);
+            parent.name().markInterested();
+        };
+    }
+
+    private void initCursorTrack(ControllerHost host) {
+        mCursorTrack = host.createCursorTrack(1, 0);
     }
 
     private HashMap<Integer, Integer> makeTrackHash(int offset) {
@@ -191,27 +231,62 @@ public class MidiMixExtension extends ControllerExtension {
 
     private void processPending(int pending) throws IOException {
         Config config = new Config("midiMix");
-        Log.send("pair processed: %d", pending);
-        Log.send("getConfigFolder: %s", config.getConfigFolder());
+//        Log.send("pair processed: %d", pending);
+//        Log.send("getConfigFolder: %s", config.getConfigFolder());
 
         // TODO: Finish Button processing
         // TODO: Think about paging
         // TODO: Work out API inputs
         // TODO: Work out how to handle folders
 
+        Log.line();
+        Log.send("mMainTrackBank.itemCount().getAsInt(): %d", mMainTrackBank.itemCount().getAsInt());
+        Log.send("mMainTrackBank.getSizeOfBank: %d", mMainTrackBank.getSizeOfBank());
+        Log.send("mMainTrackBank.getCapacityOfBank: %d", mMainTrackBank.getCapacityOfBank());
+        Log.line();
+        Log.send("mTrackBank.itemCount().getAsInt(): %d", mTrackBank.itemCount().getAsInt());
+        Log.send("mTrackBank.getSizeOfBank: %d", mTrackBank.getSizeOfBank());
+        Log.send("mTrackBank.getCapacityOfBank: %d", mTrackBank.getCapacityOfBank());
+        Log.line();
+        Log.send("mEffectTrackBank.itemCount().getAsInt(): %d", mEffectTrackBank.itemCount().getAsInt());
+        Log.send("mEffectTrackBank.getSizeOfBank: %d", mEffectTrackBank.getSizeOfBank());
+        Log.send("mEffectTrackBank.getCapacityOfBank: %d", mEffectTrackBank.getCapacityOfBank());
+        Log.line();
         iterateTracks(mMainTrackBank);
+        Log.line();
         iterateTracks(mTrackBank);
+        Log.line();
         iterateTracks(mEffectTrackBank);
+        Log.line();
+        iterateTracks();
+        Log.line();
+    }
+
+    private void iterateTracks() {
+        for (int i = 0; i < mTrackBank.getSizeOfBank(); i++) {
+            Track track = mTrackBank.getItemAt(i);
+            if (track.isGroup().get()) {
+                Log.send("Group: %s", track.name().get());
+            } else {
+                String trackType = track.trackType().get();
+                if (!trackType.isEmpty()) {
+                    if ("InstrumentAudioEffectMaster".contains(trackType)) {
+                        Log.send("%s: %s  Position: %d", trackType, track.name().get(), track.position().get());
+                    }
+                }
+            }
+        }
     }
 
     private void iterateTracks(TrackBank bank) {
-        int trackCount = bank.itemCount().getAsInt();
+        int trackCount = Math.min(bank.itemCount().getAsInt(), bank.getSizeOfBank());
         String bankClass = StringUtils.unadornedClassName(bank);
-        // Print tracks
-        Log.send("%s.itemCount() %d", bankClass, trackCount);
+        Log.send("%s.(Effective)itemCount() %d", bankClass, trackCount);
         for (int i=0; i<trackCount; i++) {
             Track track = bank.getItemAt(i);
-            Log.send("Track number %d", i);
+            Integer count = mParentCounts.get(track);
+            Log.send("Track #: %d, Name: %s, Positions: %d, Parent count: %d",
+                    track.name().get(), track.name().isSubscribed(), track.position().get(), count);
         }
     }
 
